@@ -1,0 +1,32 @@
+name: Fetch Available Slots
+
+on:
+  repository_dispatch:
+    types: [fetch-availability]
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Availability Script
+        run: python fetch_availability.py "${{ github.event.client_payload.preferred_day }}" "${{ github.event.client_payload.user_timezone }}"
+
+      - name: Commit and Push Output
+        run: |
+          git config --global user.email "github-actions@example.com"
+          git config --global user.name "GitHub Actions"
+          git add output.json
+          git commit -m "Updated availability slots"
+          git push
