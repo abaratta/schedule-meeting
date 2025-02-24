@@ -1,72 +1,51 @@
 import requests
 import json
-import sys
-import base64
-import pytz
 import datetime
-import calendar
-from datetime import date
+import pytz
 
-# GitHub Configuration
-GITHUB_REPO = "your_username/schedule-meeting"
-PICKAXE_TOKEN = "your_github_token"
+# Configuration
+TIDYCAL_API_KEY = "your_tidycal_api_key"
+BOOKING_TYPE_ID = "your_booking_type_id"  # Replace with your actual booking type ID
+TIDYCAL_URL = f"https://tidycal.com/api/booking-types/{BOOKING_TYPE_ID}/timeslots"
 
-# Extract parameters from GitHub Actions input
-request_id = sys.argv[1]
-preferred_day = sys.argv[2]
-user_timezone = sys.argv[3]
-output_filename = f"output_{request_id}.json"
-
-# Convert to Australia/Melbourne time
+# Function to convert date
 def convert_to_australian_time(user_date, user_tz):
-    """Convert user-provided date (YYYY-MM-DD or weekday name) to Australia/Melbourne time."""
+    """Convert user-provided date to Australia/Melbourne time."""
     user_tz = pytz.timezone(user_tz)
     aus_tz = pytz.timezone("Australia/Melbourne")
-
-    # If the input is a weekday name, convert it to YYYY-MM-DD
-    if user_date in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]:
-        today = date.today()
-        days_ahead = (list(calendar.day_name).index(user_date) - today.weekday()) % 7
-        user_date = (today + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
 
     user_dt = user_tz.localize(datetime.datetime.strptime(user_date, "%Y-%m-%d"))
     aus_dt = user_dt.astimezone(aus_tz)
     return aus_dt.strftime("%Y-%m-%d")
 
-aus_date = convert_to_australian_time(preferred_day, user_timezone)
-
-# Fetch available slots from TidyCal
+# Function to fetch availability from TidyCal
 def get_tidycal_availability(aus_date):
-    TIDYCAL_API_KEY = "your_tidycal_api_key"
-    TIDYCAL_URL = f"https://api.tidycal.com/v1/availability?date={aus_date}"
-    headers = {"Authorization": f"Bearer {TIDYCAL_API_KEY}"}
-    response = requests.get(TIDYCAL_URL, headers=headers)
-    return response.json().get("available_times", []) if response.status_code == 200 else []
+    """Fetch available timeslots from TidyCal"""
+    # Convert the date to a full UTC range
+    start_time = f"{aus_date}T00:00:00Z"
+    end_time = f"{aus_date}T23:59:59Z"
 
-available_slots = get_tidycal_availability(aus_date)
-
-def save_to_github(data):
-    """Save available slots to a uniquely named output file"""
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{output_filename}"
+    params = {
+        "starts_at": start_time,
+        "ends_at": end_time,
+    }
+    
     headers = {
-        "Authorization": f"token {PICKAXE_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
+        "Authorization": f"Bearer {TIDYCAL_API_KEY}",
+        "Content-Type": "application/json"
     }
 
-    # Check if file already exists
-    response = requests.get(url, headers=headers)
-    sha = response.json().get("sha", None) if response.status_code == 200 else None
+    response = requests.get(TIDYCAL_URL, headers=headers, params=params)
 
-    # Encode JSON data
-    encoded_content = base64.b64encode(json.dumps(data).encode()).decode()
+    if response.status_code == 200:
+        return response.json().get("data", [])
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return []
 
-    # Prepare request payload
-    payload = {"message": f"Updated availability slots for {request_id}", "content": encoded_content}
-    if sha:
-        payload["sha"] = sha  # Required for updating an existing file
+# Example usage (replace this with your actual script logic)
+if __name__ == "__main__":
+    aus_date = convert_to_australian_time("2025-02-24", "America/New_York")
+    available_slots = get_tidycal_availability(aus_date)
+    print("Available slots:", available_slots)
 
-    return requests.put(url, headers=headers, json=payload)
-
-# Save output to GitHub
-status, response = save_to_github({"request_id": request_id, "available_times": available_slots})
-print(f"GitHub Save Response: {status}, {response.json()}")
