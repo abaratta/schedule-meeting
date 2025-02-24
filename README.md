@@ -8,7 +8,7 @@ This repository contains a **GitHub Actions workflow** and a **Python script** t
 2. Converting the date to **Australia/Melbourne time**.
 3. Fetching **available slots from TidyCal**.
 4. Converting the available slots **back to the user's timezone**.
-5. Storing the **available slots in `output.json`** for retrieval by a chatbot (Pickaxe).
+5. Returning the **available slots as an API response** when the workflow is triggered.
 
 This system allows a chatbot to **seamlessly schedule meetings** while handling **time zone conversions automatically**.
 
@@ -19,16 +19,18 @@ This system allows a chatbot to **seamlessly schedule meetings** while handling 
 - The workflow is triggered via a **GitHub repository dispatch event**.
 - Pickaxe (or any external system) sends a **preferred date and user timezone** via GitHub API.
 - GitHub Actions executes `fetch_availability.py`.
+- The available slots are directly returned in the API response to `https://api.github.com/repos/{GITHUB_REPO}/dispatches`.
 
 ### **2️⃣ Fetching and Converting Available Slots**
 - `fetch_availability.py`:
   - Converts the preferred date to **Australia/Melbourne time**.
   - Calls **TidyCal API** to retrieve available slots.
   - Converts slots **back to the user's time zone**.
-  - Saves the available slots in `output.json`.
+  - Returns the available slots as a **JSON response**.
 
-### **3️⃣ Retrieving Available Slots**
-- Pickaxe or an external system fetches `output.json` from GitHub to display available times to the user.
+### **3️⃣ Returning Available Slots in API Response**
+- Instead of storing the available slots in `output.json`, they are **sent directly in the API response** when the GitHub workflow runs.
+- Pickaxe or an external system can **immediately retrieve and display the available slots**.
 - Once the user selects a time, a separate **meeting booking function** is triggered.
 
 ---
@@ -42,7 +44,6 @@ This system allows a chatbot to **seamlessly schedule meetings** while handling 
    .github/workflows/schedule_bot.yml
    fetch_availability.py
    requirements.txt
-   output.json (auto-generated after execution)
    ```
 
 ### **2️⃣ Set Up GitHub Secrets**
@@ -65,7 +66,7 @@ This system allows a chatbot to **seamlessly schedule meetings** while handling 
 
 ## **Usage**
 ### **1️⃣ Trigger the Workflow via API**
-Use the following Python snippet to trigger GitHub Actions:
+Use the following Python snippet to trigger GitHub Actions and receive available slots in the API response:
 ```python
 import requests
 
@@ -86,30 +87,7 @@ def trigger_github_workflow(preferred_day, user_timezone):
         }
     }
     response = requests.post(url, json=data, headers=headers)
-    return response.status_code, response.text
-```
-
-### **2️⃣ Retrieve Available Slots**
-Fetch the `output.json` file from GitHub to display available times:
-```python
-import requests
-import json
-import base64
-
-GITHUB_REPO = "your_username/your_repo"
-GITHUB_TOKEN = "your_github_token"
-
-def get_available_slots():
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/output.json"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-    
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        content = json.loads(response.text)["content"]
-        decoded_content = base64.b64decode(content).decode("utf-8")
-        return json.loads(decoded_content)
-    
-    return {"error": "No availability found"}
+    return response.status_code, response.json()
 ```
 
 ---
