@@ -7,7 +7,7 @@ from datetime import datetime
 
 # GitHub Configuration
 GITHUB_REPO = "your_username/schedule-meeting"
-GITHUB_TOKEN = "your_github_token"
+PICKAXE_TOKEN = "your_github_token"
 
 # Extract parameters from GitHub Actions input
 request_id = sys.argv[1]
@@ -39,7 +39,7 @@ def save_to_github(data):
     """Save available slots to a uniquely named output file"""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{output_filename}"
     headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
+        "Authorization": f"token {PICKAXE_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
