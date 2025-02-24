@@ -17,9 +17,17 @@ output_filename = f"output_{request_id}.json"
 
 # Convert to Australia/Melbourne time
 def convert_to_australian_time(user_date, user_tz):
+    """Convert user-provided date (YYYY-MM-DD or weekday name) to Australia/Melbourne time."""
     user_tz = pytz.timezone(user_tz)
     aus_tz = pytz.timezone("Australia/Melbourne")
-    user_dt = user_tz.localize(datetime.strptime(user_date, "%Y-%m-%d"))
+
+    # If the input is a weekday name, convert it to YYYY-MM-DD
+    if user_date in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]:
+        today = datetime.date.today()
+        days_ahead = (list(calendar.day_name).index(user_date) - today.weekday()) % 7
+        user_date = (today + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+
+    user_dt = user_tz.localize(datetime.datetime.strptime(user_date, "%Y-%m-%d"))
     aus_dt = user_dt.astimezone(aus_tz)
     return aus_dt.strftime("%Y-%m-%d")
 
