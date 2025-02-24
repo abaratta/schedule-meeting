@@ -4,6 +4,7 @@ import sys
 import base64
 import pytz
 from datetime import datetime
+from datetime import date
 
 # GitHub Configuration
 GITHUB_REPO = "your_username/schedule-meeting"
@@ -23,7 +24,7 @@ def convert_to_australian_time(user_date, user_tz):
 
     # If the input is a weekday name, convert it to YYYY-MM-DD
     if user_date in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]:
-        today = datetime.date.today()
+        today = date.today()
         days_ahead = (list(calendar.day_name).index(user_date) - today.weekday()) % 7
         user_date = (today + datetime.timedelta(days=days_ahead)).strftime("%Y-%m-%d")
 
