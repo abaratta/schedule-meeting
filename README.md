@@ -1,101 +1,139 @@
-# schedule-meeting
-
-# AI Calendar Scheduling Bot (Pickaxe + GitHub + TidyCal)
+# AI Calendar Scheduling Bot (Pickaxe + GitHub + Make.com + TidyCal)
 
 ## **Overview**
 This repository contains a **GitHub Actions workflow** and a **Python script** that automate calendar scheduling by:
-1. Accepting a **preferred date** and **user timezone** as input.
-2. Converting the date to **Australia/Melbourne time**.
-3. Fetching **available slots from TidyCal**.
-4. Converting the available slots **back to the user's timezone**.
-5. Returning the **available slots as an API response** when the workflow is triggered.
 
-This system allows a chatbot to **seamlessly schedule meetings** while handling **time zone conversions automatically**.
+1. Accepting a **preferred date** and **user timezone** as input from Pickaxe.
+2. Sending the request to **Make.com**, which triggers GitHub Actions.
+3. Converting the date to **Australia/Melbourne time**.
+4. Fetching **available slots from TidyCal**.
+5. Saving the results in a uniquely named `output_{request_id}.json` file.
+6. Make.com waits for 10 seconds, then retrieves the correct file from GitHub.
+7. Make.com returns the response back to Pickaxe.
 
----
-
-## **How It Works**
-### **1️⃣ Triggering the Workflow**
-- The workflow is triggered via a **GitHub repository dispatch event**.
-- Pickaxe (or any external system) sends a **preferred date and user timezone** via GitHub API.
-- GitHub Actions executes `fetch_availability.py`.
-- The available slots are directly returned in the API response to `https://api.github.com/repos/{GITHUB_REPO}/dispatches`.
-
-### **2️⃣ Fetching and Converting Available Slots**
-- `fetch_availability.py`:
-  - Converts the preferred date to **Australia/Melbourne time**.
-  - Calls **TidyCal API** to retrieve available slots.
-  - Converts slots **back to the user's time zone**.
-  - Returns the available slots as a **JSON response**.
-
-### **3️⃣ Returning Available Slots in API Response**
-- Instead of storing the available slots in `output.json`, they are **sent directly in the API response** when the GitHub workflow runs.
-- Pickaxe or an external system can **immediately retrieve and display the available slots**.
-- Once the user selects a time, a separate **meeting booking function** is triggered.
+This system allows a chatbot to **seamlessly schedule meetings** while ensuring that each request gets the correct response.
 
 ---
 
-## **Setup Instructions**
+## **Files Required in GitHub**
 
-### **1️⃣ Create a GitHub Repository**
-1. Clone this repository or create a new one.
-2. Ensure the following structure exists:
-   ```
-   .github/workflows/schedule_bot.yml
-   fetch_availability.py
-   requirements.txt
-   ```
+### **1️⃣ `.github/workflows/schedule_bot.yml` (GitHub Actions Workflow)**
+This workflow listens for `repository_dispatch` events triggered by Make.com and runs the `fetch_availability.py` script.
 
-### **2️⃣ Set Up GitHub Secrets**
-- Go to **Settings → Secrets and variables → Actions → New Repository Secret**.
-- Add the following secrets:
-  - `TIDYCAL_API_KEY` → Your **TidyCal API Key**.
-  - `GITHUB_TOKEN` → Personal Access Token (if triggering via API).
+```yaml
+name: Fetch Available Slots
+on:
+  repository_dispatch:
+    types: [fetch-availability]
 
-### **3️⃣ Configure GitHub Actions Workflow**
-- The **workflow file (`.github/workflows/schedule_bot.yml`)** automatically runs when triggered via API.
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
 
-### **4️⃣ Install Dependencies**
-- The Python script requires **pytz** and **requests**.
-- Install dependencies locally with:
-  ```sh
-  pip install -r requirements.txt
-  ```
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Availability Script
+        run: python fetch_availability.py "${{ github.event.client_payload.request_id }}" "${{ github.event.client_payload.preferred_day }}" "${{ github.event.client_payload.user_timezone }}"
+```
 
 ---
 
-## **Usage**
-### **1️⃣ Trigger the Workflow via API**
-Use the following Python snippet to trigger GitHub Actions and receive available slots in the API response:
+### **2️⃣ `fetch_availability.py` (Fetch Available Slots and Save to GitHub)**
+This script:
+- Extracts `request_id`, `preferred_day`, and `user_timezone` from GitHub Actions.
+- Converts the date to **Australia/Melbourne time**.
+- Fetches available slots from **TidyCal**.
+- Saves the results in `output_{request_id}.json` in GitHub.
+
 ```python
 import requests
+import json
+import sys
+import base64
+import pytz
+from datetime import datetime
 
+# GitHub Configuration
+GITHUB_REPO = "your_username/schedule-meeting"
 GITHUB_TOKEN = "your_github_token"
-GITHUB_REPO = "your_username/your_repo"
 
-def trigger_github_workflow(preferred_day, user_timezone):
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/dispatches"
+# Extract parameters from GitHub Actions input
+request_id = sys.argv[1]
+preferred_day = sys.argv[2]
+user_timezone = sys.argv[3]
+output_filename = f"output_{request_id}.json"
+
+# Convert to Australia/Melbourne time
+def convert_to_australian_time(user_date, user_tz):
+    user_tz = pytz.timezone(user_tz)
+    aus_tz = pytz.timezone("Australia/Melbourne")
+    user_dt = user_tz.localize(datetime.strptime(user_date, "%Y-%m-%d"))
+    aus_dt = user_dt.astimezone(aus_tz)
+    return aus_dt.strftime("%Y-%m-%d")
+
+aus_date = convert_to_australian_time(preferred_day, user_timezone)
+
+# Fetch available slots from TidyCal
+def get_tidycal_availability(aus_date):
+    TIDYCAL_API_KEY = "your_tidycal_api_key"
+    TIDYCAL_URL = f"https://api.tidycal.com/v1/availability?date={aus_date}"
+    headers = {"Authorization": f"Bearer {TIDYCAL_API_KEY}"}
+    response = requests.get(TIDYCAL_URL, headers=headers)
+    return response.json().get("available_times", []) if response.status_code == 200 else []
+
+available_slots = get_tidycal_availability(aus_date)
+
+def save_to_github(data):
+    """Save available slots to a uniquely named output file"""
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{output_filename}"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
-    data = {
-        "event_type": "fetch-availability",
-        "client_payload": {
-            "preferred_day": preferred_day,
-            "user_timezone": user_timezone
-        }
-    }
-    response = requests.post(url, json=data, headers=headers)
-    return response.status_code, response.json()
+
+    # Check if file already exists
+    response = requests.get(url, headers=headers)
+    sha = response.json().get("sha", None) if response.status_code == 200 else None
+
+    # Encode JSON data
+    encoded_content = base64.b64encode(json.dumps(data).encode()).decode()
+
+    # Prepare request payload
+    payload = {"message": f"Updated availability slots for {request_id}", "content": encoded_content}
+    if sha:
+        payload["sha"] = sha  # Required for updating an existing file
+
+    return requests.put(url, headers=headers, json=payload)
+
+# Save output to GitHub
+status, response = save_to_github({"request_id": request_id, "available_times": available_slots})
+print(f"GitHub Save Response: {status}, {response.json()}")
+```
+
+---
+
+### **3️⃣ `requirements.txt` (Dependencies for Python Script)**
+```txt
+pytz
+requests
 ```
 
 ---
 
 ## **Next Steps**
-✅ **Test API triggers** to fetch availability.
-✅ **Integrate Pickaxe chatbot** to interact with this system.
-✅ **Develop a function to book meetings** once a slot is selected.
+✅ **Set up Make.com to trigger this workflow and wait 10 seconds before fetching results.**  
+✅ **Modify Make.com to retrieve `output_{request_id}.json` after the delay.**  
+✅ **Ensure Make.com forwards the retrieved data back to Pickaxe via webhook response.**
 
 For improvements or questions, feel free to **submit an issue** or **pull request**! 🚀
 
