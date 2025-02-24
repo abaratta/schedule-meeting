@@ -37,8 +37,15 @@ def get_tidycal_availability(aus_date):
 
     response = requests.get(TIDYCAL_URL, headers=headers, params=params)
 
+    print(f"Response Status Code: {response.status_code}")
+    print(f"Response Text: {response.text}")  # Debugging: Print the raw response
+
     if response.status_code == 200:
-        return response.json().get("data", [])
+        try:
+            return response.json().get("data", [])
+        except json.JSONDecodeError:
+            print("Error: Response is not valid JSON")
+            return []
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return []
