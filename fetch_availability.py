@@ -6,7 +6,7 @@ import os
 
 # Configuration
 TIDYCAL_API_KEY = os.getenv("TIDYCAL_API_KEY")  # Load from GitHub Secrets
-BOOKING_TYPE_ID = os.getenv("TIDYCAL_BOOKING_TYPE_ID")  # Load from GitHub Secrets
+BOOKING_TYPE_ID = "736984"
 TIDYCAL_URL = f"https://tidycal.com/api/booking-types/{BOOKING_TYPE_ID}/timeslots"
 
 if not TIDYCAL_API_KEY:
