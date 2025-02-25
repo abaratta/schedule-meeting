@@ -1,11 +1,11 @@
-name: Fetch Available Slots
+name: Fetch Availability from TidyCal
 
 on:
   repository_dispatch:
     types: [fetch-availability]
 
 jobs:
-  run-script:
+  fetch-availability:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,10 +15,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
+      - name: Check Environment Variables (Debugging)
+        run: env  # ✅ Print environment variables for debugging
+
       - name: Run Availability Script
-        run: python fetch_availability.py "${{ github.event.client_payload.request_id }}" "${{ github.event.client_payload.preferred_day }}" "${{ github.event.client_payload.user_timezone }}"
+        env:
+          TIDYCAL_API_KEY: ${{ secrets.TIDYCAL_API_KEY }}  # ✅ Pass API Key to script
+          TIDYCAL_BOOKING_TYPE_ID: ${{ secrets.TIDYCAL_BOOKING_TYPE_ID }}  # ✅ Pass Booking Type ID
+        run: python fetch_availability.py "" "Monday" "Australia/Melbourne"
+
+      - name: Debug API Key (Safety Check)
+        run: echo "API Key Length: ${#TIDYCAL_API_KEY}"  # ✅ Confirm API Key is loaded (without exposing it)
+
