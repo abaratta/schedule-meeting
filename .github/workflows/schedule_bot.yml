@@ -1,3 +1,5 @@
+# Test update to trigger GitHub workflow detection
+
 name: Fetch Availability from TidyCal
 
 on:
