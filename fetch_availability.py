@@ -29,8 +29,8 @@ def convert_to_australian_time(user_date, user_tz):
 def get_tidycal_availability(aus_date):
     """Fetch available timeslots from TidyCal"""
     # Convert the date to a full UTC range
-    start_time = f"{aus_dt}T00:00:00Z"
-    end_time = f"{aus_dt}T23:59:59Z"
+    start_time = f"{aus_date}T00:00:00Z"
+    end_time = f"{aus_date}T23:59:59Z"
 
     params = {
         "starts_at": start_time,
