@@ -32,6 +32,6 @@ jobs:
       - name: Debug API Key (Safety Check)
         run: |
           length=$(echo -n "$TIDYCAL_API_KEY" | wc -c)
-          echo "API Key Length: $length"
+          echo "API Key Length: $length" #
 
 
