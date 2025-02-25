@@ -34,4 +34,7 @@ jobs:
           length=$(echo -n "$TIDYCAL_API_KEY" | wc -c)
           echo "API Key Length: $length" #
 
+      - name: Debug Booking Type ID
+        run: echo "Booking Type ID: $TIDYCAL_BOOKING_TYPE_ID"
+
 
