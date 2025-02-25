@@ -10,6 +10,9 @@ on:
 jobs:
   fetch-availability:
     runs-on: ubuntu-latest
+    env:
+      TIDYCAL_API_KEY: ${{ secrets.TIDYCAL_API_KEY }}
+      TIDYCAL_BOOKING_TYPE_ID: ${{ secrets.TIDYCAL_BOOKING_TYPE_ID }}
 
     steps:
       - name: Checkout Repository
@@ -24,9 +27,6 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Availability Script
-        env:
-          TIDYCAL_API_KEY: ${{ secrets.TIDYCAL_API_KEY }}
-          TIDYCAL_BOOKING_TYPE_ID: ${{ secrets.TIDYCAL_BOOKING_TYPE_ID }}
         run: python fetch_availability.py "" "Monday" "Australia/Melbourne"
 
       - name: Debug API Key (Safety Check)
