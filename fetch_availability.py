@@ -2,10 +2,12 @@ import requests
 import json
 import datetime
 import pytz
+import os
 
 # Configuration
-TIDYCAL_API_KEY = "your_tidycal_api_key"
-BOOKING_TYPE_ID = "your_booking_type_id"  # Replace with your actual booking type ID
+TIDYCAL_API_KEY = os.getenv("TIDYCAL_API_KEY")  # Load from GitHub Secrets
+BOOKING_TYPE_ID = os.getenv("TIDYCAL_BOOKING_TYPE_ID")  # Load from GitHub Secrets
+
 TIDYCAL_URL = f"https://tidycal.com/api/booking-types/{BOOKING_TYPE_ID}/timeslots"
 
 # Function to convert date
@@ -31,9 +33,11 @@ def get_tidycal_availability(aus_date):
     }
     
     headers = {
-        "Authorization": f"Bearer {TIDYCAL_API_KEY}",
-        "Content-Type": "application/json"
+    "Authorization": f"Bearer {TIDYCAL_API_KEY}",  # Ensure 'Bearer' is included
+    "Accept": "application/json",
+    "Content-Type": "application/json"
     }
+
 
     response = requests.get(TIDYCAL_URL, headers=headers, params=params)
 
