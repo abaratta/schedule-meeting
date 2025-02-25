@@ -1,6 +1,7 @@
 name: Fetch Availability from TidyCal
 
 on:
+  workflow_dispatch:
   repository_dispatch:
     types: [fetch-availability]
 
