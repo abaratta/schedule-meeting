@@ -6,7 +6,7 @@ on:
 
 jobs:
   fetch-availability:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
@@ -22,20 +22,9 @@ jobs:
 
       - name: Run Availability Script
         env:
-          TIDYCAL_API_KEY: ${{ secrets.TIDYCAL_API_KEY }}  # ✅ Pass API Key to script
-          TIDYCAL_BOOKING_TYPE_ID: ${{ secrets.TIDYCAL_BOOKING_TYPE_ID }}  # ✅ Pass Booking Type ID
+          TIDYCAL_API_KEY: ${{ secrets.TIDYCAL_API_KEY }}
+          TIDYCAL_BOOKING_TYPE_ID: ${{ secrets.TIDYCAL_BOOKING_TYPE_ID }}
         run: python fetch_availability.py "" "Monday" "Australia/Melbourne"
-
-      - name: Debug API Key (Safety Check)
-        run: |
-          if [[ -z "${TIDYCAL_API_KEY}" ]]; then
-            echo "❌ ERROR: TIDYCAL_API_KEY is not set!"
-            exit 1
-          else
-            echo "✅ API Key Loaded Successfully!"
-            echo "API Key Length: ${#TIDYCAL_API_KEY}"  # ✅ Confirm API Key is loaded (without exposing it)
-          fi
-        shell: bash
 
       - name: Debug API Key (Safety Check)
         run: echo "API Key Length: ${#TIDYCAL_API_KEY}"  # ✅ Confirm API Key is loaded (without exposing it)
