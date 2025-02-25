@@ -7,8 +7,13 @@ import os
 # Configuration
 TIDYCAL_API_KEY = os.getenv("TIDYCAL_API_KEY")  # Load from GitHub Secrets
 BOOKING_TYPE_ID = os.getenv("TIDYCAL_BOOKING_TYPE_ID")  # Load from GitHub Secrets
-
 TIDYCAL_URL = f"https://tidycal.com/api/booking-types/{BOOKING_TYPE_ID}/timeslots"
+
+if not TIDYCAL_API_KEY:
+    print("Error: TIDYCAL_API_KEY is not set or is empty.")
+    exit(1)
+
+print(f"API Key Loaded, Length: {len(TIDYCAL_API_KEY)}")
 
 # Function to convert date
 def convert_to_australian_time(user_date, user_tz):
@@ -38,7 +43,8 @@ def get_tidycal_availability(aus_date):
     "Content-Type": "application/json"
     }
 
-
+    print(f"Using API Key (masked): Bearer {TIDYCAL_API_KEY[:4]}...{TIDYCAL_API_KEY[-4:]}")
+    
     response = requests.get(TIDYCAL_URL, headers=headers, params=params)
 
     print(f"Response Status Code: {response.status_code}")
