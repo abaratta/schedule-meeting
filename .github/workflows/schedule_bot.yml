@@ -30,6 +30,8 @@ jobs:
         run: python fetch_availability.py "" "Monday" "Australia/Melbourne"
 
       - name: Debug API Key (Safety Check)
-        run: echo "API Key Length: $(echo -n $TIDYCAL_API_KEY | wc -c)"  # Confirm API Key is loaded
+        run: |
+          length=$(echo -n "$TIDYCAL_API_KEY" | wc -c)
+          echo "API Key Length: $length"
 
 
